@@ -36,6 +36,7 @@ WS_TYPE_LIST = "rflink_streamer/onboarding/list"
 WS_TYPE_ADD = "rflink_streamer/onboarding/add"
 WS_TYPE_IGNORE = "rflink_streamer/onboarding/ignore"
 WS_TYPE_DELETE = "rflink_streamer/onboarding/delete"
+WS_TYPE_RESTORE = "rflink_streamer/onboarding/restore"
 WS_TYPE_TEST = "rflink_streamer/onboarding/test"
 WS_TYPE_SET_SIDEBAR = "rflink_streamer/onboarding/set_sidebar"
 
@@ -80,6 +81,7 @@ async def async_setup_onboarding(hass: HomeAssistant, entry: ConfigEntry) -> Non
     websocket_api.async_register_command(hass, _ws_add)
     websocket_api.async_register_command(hass, _ws_ignore)
     websocket_api.async_register_command(hass, _ws_delete)
+    websocket_api.async_register_command(hass, _ws_restore)
     websocket_api.async_register_command(hass, _ws_test)
     websocket_api.async_register_command(hass, _ws_set_sidebar)
     hass.data[DOMAIN]["ws_onboarding_registered"] = True
@@ -235,7 +237,8 @@ async def _ws_add(
     event_data = await _get_latest_event_data(runtime_data, registry, msg["raw_device_id"])
     if event_data:
         normalized_event = dict(event_data)
-        normalized_event["device_id"] = target_canonical_id
+        # process_event expects the raw RFLink ID as device_id and maps it to canonical_id
+        normalized_event["device_id"] = msg["raw_device_id"]
         normalized_event["raw_device_id"] = msg["raw_device_id"]
         normalized_event["platform"] = msg.get("platform") or event_data.get("platform") or "light"
         mapped_event = registry.process_event(normalized_event, runtime_data["auto_add_new_devices"])
@@ -320,7 +323,7 @@ async def _ws_delete(
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "rflink_streamer/onboarding/restore",
+        vol.Required("type"): WS_TYPE_RESTORE,
         vol.Required("entry_id"): str,
         vol.Required("raw_device_id"): str,
     }

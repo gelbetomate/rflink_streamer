@@ -75,11 +75,12 @@ To avoid the long options-flow form, the integration now adds a dedicated sideba
 The panel provides:
 
 - **Pending Devices** list for newly discovered raw IDs
+- **ID filter** to search by raw ID, canonical ID, protocol, platform, or raw RFLink line
 - **Test** to inspect the latest payload for a device
 - **Add / Merge** with optional custom logical ID and platform override
+- **Restore** to move an added ID back to pending/discovered
 - **Ignore** to hide noisy or unwanted IDs
 - **Delete** to remove a raw ID from registry/history and clean up created entities
-- **Sidebar toggle** button to show/hide the onboarding entry in the Home Assistant sidebar
 - **Added Devices** list for IDs that are currently enabled
 
 To merge two devices with different raw IDs, give both the same entity base id in the onboarding panel and add them under the same target id.

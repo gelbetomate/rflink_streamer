@@ -20,9 +20,16 @@ class RFLinkStreamerEntity(RestoreEntity, ABC):
 
     _event_platform: str
 
-    def __init__(self, config_entry_id: str, device_id: str, protocol: str) -> None:
+    def __init__(
+        self,
+        config_entry_id: str,
+        device_id: str,
+        protocol: str,
+        physical_device_id: str | None = None,
+    ) -> None:
         self._config_entry_id = config_entry_id
         self._device_id = device_id
+        self._physical_device_id = physical_device_id or device_id
         self._protocol = protocol
         self._attr_should_poll = False
         self._attr_available = False
@@ -38,9 +45,10 @@ class RFLinkStreamerEntity(RestoreEntity, ABC):
 
     @property
     def device_info(self) -> DeviceInfo:
+        device_slug = f"{self._config_entry_id}_{self._physical_device_id}"
         return DeviceInfo(
-            identifiers={(DOMAIN, self._config_entry_id)},
-            name="RFLink Streamer Gateway",
+            identifiers={(DOMAIN, device_slug)},
+            name=self._physical_device_id.replace("_", " ").title(),
         )
 
     async def async_added_to_hass(self) -> None:

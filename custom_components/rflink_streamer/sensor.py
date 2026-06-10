@@ -57,7 +57,12 @@ class RFLinkStreamerSensor(RFLinkStreamerEntity, SensorEntity):
     _event_platform = "sensor"
 
     def __init__(self, config_entry_id: str, base_device_id: str, protocol: str, measurement: str, initial_value: Any) -> None:
-        super().__init__(config_entry_id, f"{base_device_id}_{measurement}", protocol)
+        super().__init__(
+            config_entry_id,
+            f"{base_device_id}_{measurement}",
+            protocol,
+            physical_device_id=base_device_id,
+        )
         self._measurement = measurement
         description = _SENSOR_DESCRIPTIONS[measurement]
         self._attr_device_class = description["device_class"]

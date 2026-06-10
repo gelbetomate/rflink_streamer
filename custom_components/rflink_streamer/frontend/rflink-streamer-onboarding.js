@@ -75,6 +75,11 @@ class RFLinkStreamerOnboarding extends HTMLElement {
           justify-content: flex-end;
           margin-bottom: 16px;
         }
+        .id-filter {
+          min-width: 260px;
+          max-width: 420px;
+          width: 100%;
+        }
         button {
           border: 1px solid transparent;
           background: var(--rflink-surface);
@@ -190,6 +195,7 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         </ha-top-app-bar-fixed>
         <div class="content">
           <div class="actions">
+            <input class="id-filter" id="id-filter" placeholder="Filter by ID/protocol/raw line" />
             <button class="primary" id="refresh">Refresh</button>
           </div>
           <div class="grid">
@@ -210,7 +216,12 @@ class RFLinkStreamerOnboarding extends HTMLElement {
 
   _bindEvents() {
     const refreshBtn = this.querySelector("#refresh");
+    const filterInput = this.querySelector("#id-filter");
     refreshBtn?.addEventListener("click", () => this._load());
+    filterInput?.addEventListener("input", (event) => {
+      this._idFilter = (event.target?.value || "").toLowerCase().trim();
+      this._renderLists(this._pendingDevices || [], this._addedDevices || []);
+    });
   }
 
   async _load() {
@@ -224,8 +235,10 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         type: "rflink_streamer/onboarding/list",
         entry_id: this._entryId,
       });
-      this._renderLists(result.pending || [], result.added || []);
-      this._setStatus(`Loaded ${result.pending.length} pending, ${result.added.length} added.`);
+      this._pendingDevices = result.pending || [];
+      this._addedDevices = result.added || [];
+      this._renderLists(this._pendingDevices, this._addedDevices);
+      this._setStatus(`Loaded ${this._pendingDevices.length} pending, ${this._addedDevices.length} added.`);
     } catch (err) {
       this._setStatus(`Failed to load devices: ${err?.message || err}`);
     }
@@ -238,22 +251,43 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       return;
     }
 
+    const visiblePending = pending.filter((item) => this._matchesFilter(item));
+    const visibleAdded = added.filter((item) => this._matchesFilter(item));
     const mergeTargets = [...new Set(added.map((item) => item.canonical_id).filter(Boolean))].sort();
 
     pendingEl.innerHTML = "";
     addedEl.innerHTML = "";
 
-    if (pending.length === 0) {
+    if (visiblePending.length === 0) {
       pendingEl.innerHTML = '<div class="muted">No pending devices.</div>';
     } else {
-      pending.forEach((item) => pendingEl.appendChild(this._renderPending(item, mergeTargets)));
+      visiblePending.forEach((item) => pendingEl.appendChild(this._renderPending(item, mergeTargets)));
     }
 
-    if (added.length === 0) {
+    if (visibleAdded.length === 0) {
       addedEl.innerHTML = '<div class="muted">No added devices yet.</div>';
     } else {
-      added.forEach((item) => addedEl.appendChild(this._renderAdded(item)));
+      visibleAdded.forEach((item) => addedEl.appendChild(this._renderAdded(item)));
     }
+  }
+
+  _matchesFilter(item) {
+    const filter = this._idFilter || "";
+    if (!filter) {
+      return true;
+    }
+    const haystack = [
+      item.raw_device_id,
+      item.canonical_id,
+      item.protocol,
+      item.platform,
+      item.preferred_platform,
+      item.last_raw_string,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(filter);
   }
 
   _renderPending(item, mergeTargets) {
