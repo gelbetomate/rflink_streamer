@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "RFLink Streamer Gateway",
+        "description": "Connect to your RFLink TCP stream (e.g. ESPHome serial-to-TCP bridge)",
+        "data": {
+          "host": "Host / IP Address",
+          "port": "TCP Port",
+          "reconnect_interval": "Reconnect interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect. Please check host and port.",
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This RFLink gateway is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "reconnect_interval": "Reconnect interval (seconds)"
+        }
+      }
+    }
+  }
+}
