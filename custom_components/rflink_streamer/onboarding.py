@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 from collections import deque
 from copy import deepcopy
+import logging
 from pathlib import Path
 from typing import Any
-import logging
 
 import voluptuous as vol
 
@@ -87,28 +88,36 @@ async def async_setup_onboarding(hass: HomeAssistant, entry: ConfigEntry) -> Non
 async def async_set_sidebar_entry_enabled(hass: HomeAssistant, entry: ConfigEntry, enabled: bool) -> None:
     """Show or hide the onboarding sidebar panel."""
     if enabled:
-        panel_custom.async_register_panel(
-            hass,
-            webcomponent_name="rflink-streamer-onboarding",
-            frontend_url_path=ONBOARDING_PANEL_PATH,
-            module_url=f"/{DOMAIN}/frontend/rflink-streamer-onboarding.js",
-            sidebar_title=PANEL_TITLE,
-            sidebar_icon=PANEL_ICON,
-            require_admin=False,
-            config={"entry_id": entry.entry_id},
+        await _maybe_await(
+            panel_custom.async_register_panel(
+                hass,
+                webcomponent_name="rflink-streamer-onboarding",
+                frontend_url_path=ONBOARDING_PANEL_PATH,
+                module_url=f"/{DOMAIN}/frontend/rflink-streamer-onboarding.js",
+                sidebar_title=PANEL_TITLE,
+                sidebar_icon=PANEL_ICON,
+                require_admin=False,
+                config={"entry_id": entry.entry_id},
+            )
         )
         LOGGER.info("RFLink onboarding panel registered in sidebar at /%s", ONBOARDING_PANEL_PATH)
         return
 
     with contextlib.suppress(ValueError):
-        frontend.async_remove_panel(hass, ONBOARDING_PANEL_PATH)
+        await _maybe_await(frontend.async_remove_panel(hass, ONBOARDING_PANEL_PATH))
         LOGGER.info("RFLink onboarding panel removed from sidebar")
 
 
 async def async_remove_onboarding_panel(hass: HomeAssistant) -> None:
     """Remove onboarding panel on integration unload."""
     with contextlib.suppress(ValueError):
-        frontend.async_remove_panel(hass, ONBOARDING_PANEL_PATH)
+        await _maybe_await(frontend.async_remove_panel(hass, ONBOARDING_PANEL_PATH))
+
+
+async def _maybe_await(result: Any) -> None:
+    """Await coroutine results while supporting sync HA APIs."""
+    if inspect.isawaitable(result):
+        await result
 
 
 def cache_event(runtime_data: dict[str, Any], event_data: dict[str, Any]) -> None:
