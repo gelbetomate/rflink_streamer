@@ -81,14 +81,11 @@ class RFLinkStreamerLight(RFLinkStreamerEntity, LightEntity):
         client = self.hass.data[DOMAIN][self._config_entry_id]["client"]
         await client.async_send(format_rflink_command(self.protocol, self._source_attributes, "OFF"))
         self._attr_is_on = False
-        self._attr_brightness = None
 
     def _apply_event(self, event_data: dict[str, Any]) -> None:
         state = event_data.get("state")
         if isinstance(state, bool):
             self._attr_is_on = state
-            if not state:
-                self._attr_brightness = None
         elif isinstance(state, int):
             self._supports_brightness = True
             self._attr_brightness = state
