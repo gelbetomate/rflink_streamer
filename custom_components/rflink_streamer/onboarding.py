@@ -168,6 +168,7 @@ async def _ws_list(
             "preferred_platform": record.get("preferred_platform"),
             "protocol": record.get("protocol") or "unknown",
             "last_seen": record.get("last_seen"),
+            "last_raw_string": record.get("last_raw_string") or (latest_event or {}).get("raw_message"),
             "has_event": latest_event is not None,
             "measurements": list((latest_event or {}).get("measurements", {}).keys()),
         }
@@ -233,7 +234,11 @@ async def _ws_add(
 
     event_data = await _get_latest_event_data(runtime_data, registry, msg["raw_device_id"])
     if event_data:
-        mapped_event = registry.process_event(event_data, runtime_data["auto_add_new_devices"])
+        normalized_event = dict(event_data)
+        normalized_event["device_id"] = target_canonical_id
+        normalized_event["raw_device_id"] = msg["raw_device_id"]
+        normalized_event["platform"] = msg.get("platform") or event_data.get("platform") or "light"
+        mapped_event = registry.process_event(normalized_event, runtime_data["auto_add_new_devices"])
         if mapped_event is not None:
             runtime_data["dispatch_event"](mapped_event)
 
@@ -315,6 +320,39 @@ async def _ws_delete(
 
 @websocket_api.websocket_command(
     {
+        vol.Required("type"): "rflink_streamer/onboarding/restore",
+        vol.Required("entry_id"): str,
+        vol.Required("raw_device_id"): str,
+    }
+)
+@websocket_api.async_response
+async def _ws_restore(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    runtime_data = _get_runtime_data(hass, msg["entry_id"])
+    registry = runtime_data["device_registry"]
+    raw_device_id = msg["raw_device_id"]
+    devices_before = await registry.async_get_devices()
+    record = devices_before.get(raw_device_id)
+
+    await registry.async_set_device_preferences(
+        raw_device_id,
+        enabled=False,
+        ignored=False,
+    )
+
+    if record is not None:
+        canonical_id = record.get("canonical_id") or raw_device_id
+        _remove_from_known_devices(runtime_data, canonical_id)
+        _remove_entities_for_canonical(hass, runtime_data["entry"].entry_id, canonical_id)
+
+    connection.send_result(msg["id"], {"ok": True})
+
+
+@websocket_api.websocket_command(
+    {
         vol.Required("type"): WS_TYPE_TEST,
         vol.Required("entry_id"): str,
         vol.Required("raw_device_id"): str,
@@ -340,6 +378,7 @@ async def _ws_test(
             "protocol": event_data.get("protocol"),
             "state": event_data.get("state"),
             "measurements": event_data.get("measurements", {}),
+            "raw_string": event_data.get("raw_message"),
             "attributes": event_data.get("attributes", {}),
         },
     )

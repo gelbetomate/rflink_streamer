@@ -116,6 +116,8 @@ class RFLinkStreamerClient:
                 if parsed is None:
                     continue
 
+                parsed["raw_message"] = message
+
                 runtime_data = self.hass.data[DOMAIN][self.entry_id]
                 parsed = runtime_data["device_registry"].process_event(
                     parsed,

@@ -156,6 +156,25 @@ class RFLinkStreamerOnboarding extends HTMLElement {
           font-size: 0.85rem;
           margin-top: -2px;
         }
+        details.raw-details {
+          color: var(--rflink-muted);
+          font-size: 0.85rem;
+        }
+        details.raw-details summary {
+          cursor: pointer;
+          user-select: none;
+          list-style: none;
+        }
+        details.raw-details summary::-webkit-details-marker {
+          display: none;
+        }
+        .raw-text {
+          margin-top: 6px;
+          word-break: break-word;
+          color: var(--rflink-text);
+          font-family: monospace;
+          white-space: pre-wrap;
+        }
         .status {
           margin-top: 10px;
           color: var(--rflink-muted);
@@ -247,6 +266,10 @@ class RFLinkStreamerOnboarding extends HTMLElement {
     wrapper.innerHTML = `
       <div class="line"><strong>${item.raw_device_id}</strong><span class="muted">${item.protocol}</span></div>
       <div class="line"><span class="muted">Detected platform: ${item.platform}</span><span class="muted">${item.last_seen || "never"}</span></div>
+      <details class="raw-details">
+        <summary>Raw RFLink line</summary>
+        <div class="raw-text">${item.last_raw_string || "n/a"}</div>
+      </details>
       <div class="row">
         <input class="canonical" list="merge-targets-${item.raw_device_id}" value="${defaultName}" placeholder="Merge target / entity base id" />
         <select class="platform">
@@ -310,11 +333,21 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       <div class="line"><strong>${item.canonical_id}</strong><span class="muted">${item.preferred_platform || item.platform}</span></div>
       <div class="line"><span class="muted">Raw: ${item.raw_device_id}</span><span class="muted">${item.protocol}</span></div>
       <div class="line"><span class="muted">Last seen: ${item.last_seen || "never"}</span></div>
+      <details class="raw-details">
+        <summary>Raw RFLink line</summary>
+        <div class="raw-text">${item.last_raw_string || "n/a"}</div>
+      </details>
       <div class="row">
+        <button class="subtle restore">Restore</button>
         <button class="warn ignore">Ignore</button>
         <button class="subtle delete">Delete</button>
       </div>
     `;
+
+    wrapper.querySelector(".restore")?.addEventListener("click", async () => {
+      await this._restore(item.raw_device_id);
+      await this._load();
+    });
 
     wrapper.querySelector(".ignore")?.addEventListener("click", async () => {
       await this._ignore(item.raw_device_id);
@@ -367,6 +400,19 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       this._setStatus(`Deleted ${rawDeviceId}.`);
     } catch (err) {
       this._setStatus(`Failed to delete ${rawDeviceId}: ${err?.message || err}`);
+    }
+  }
+
+  async _restore(rawDeviceId) {
+    try {
+      await this._hass.callWS({
+        type: "rflink_streamer/onboarding/restore",
+        entry_id: this._entryId,
+        raw_device_id: rawDeviceId,
+      });
+      this._setStatus(`Restored ${rawDeviceId} to pending.`);
+    } catch (err) {
+      this._setStatus(`Failed to restore ${rawDeviceId}: ${err?.message || err}`);
     }
   }
 
