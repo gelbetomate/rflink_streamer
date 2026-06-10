@@ -71,7 +71,7 @@ class RFLinkStreamerClient:
     async def async_send(self, command: str) -> None:
         if self._writer is None:
             raise HomeAssistantError("RFLink Streamer is not connected")
-        self._writer.write(f"{command.rstrip()}\n".encode())
+        self._writer.write(f"{command.rstrip('\r\n')}\n".encode())
         await self._writer.drain()
 
     async def _run(self) -> None:

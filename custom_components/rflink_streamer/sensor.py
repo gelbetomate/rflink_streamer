@@ -70,7 +70,7 @@ class RFLinkStreamerSensor(RFLinkStreamerEntity, SensorEntity):
         last_state = await self.async_get_last_state()
         if last_state is None or last_state.state in {STATE_UNKNOWN, STATE_UNAVAILABLE}:
             return
-        self._attr_native_value = _restore_native_value(last_state.state)
+        self._attr_native_value = _restore_native_value(last_state.state, self._measurement)
 
     def async_handle_event(self, event_data: dict[str, Any]) -> None:
         if self._measurement not in event_data["measurements"]:
@@ -79,9 +79,9 @@ class RFLinkStreamerSensor(RFLinkStreamerEntity, SensorEntity):
         self.async_write_ha_state()
 
 
-def _restore_native_value(state: str) -> int | float | str:
+def _restore_native_value(state: str, measurement: str) -> int | float | str:
     try:
-        if "." in state:
+        if measurement in {"temp", "rain", "winsp"}:
             return float(state)
         return int(state)
     except ValueError:

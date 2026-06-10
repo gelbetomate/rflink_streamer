@@ -57,22 +57,31 @@ class RFLinkStreamerLight(RFLinkStreamerEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         brightness = kwargs.get(ATTR_BRIGHTNESS)
+        next_is_on = True
+        next_brightness = self._attr_brightness
+        command = "ON"
+
         if brightness is not None:
             self._supports_brightness = True
-            command = f"SET_LEVEL={brightness_to_rflink_level(brightness)}"
-            self._attr_brightness = brightness
-            self._attr_is_on = brightness > 0
-        else:
-            command = "ON"
-            self._attr_is_on = True
+            if brightness <= 0:
+                command = "OFF"
+                next_is_on = False
+                next_brightness = None
+            else:
+                command = f"SET_LEVEL={brightness_to_rflink_level(brightness)}"
+                next_is_on = True
+                next_brightness = brightness
 
         client = self.hass.data[DOMAIN][self._config_entry_id]["client"]
         await client.async_send(format_rflink_command(self.protocol, self._source_attributes, command))
+        self._attr_is_on = next_is_on
+        self._attr_brightness = next_brightness
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        self._attr_is_on = False
         client = self.hass.data[DOMAIN][self._config_entry_id]["client"]
         await client.async_send(format_rflink_command(self.protocol, self._source_attributes, "OFF"))
+        self._attr_is_on = False
+        self._attr_brightness = None
 
     def _apply_event(self, event_data: dict[str, Any]) -> None:
         state = event_data.get("state")

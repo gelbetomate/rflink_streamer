@@ -41,14 +41,14 @@ class RFLinkStreamerSwitch(RFLinkStreamerEntity, SwitchEntity):
         self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        self._attr_is_on = True
         client = self.hass.data[DOMAIN][self._config_entry_id]["client"]
         await client.async_send(format_rflink_command(self.protocol, self._source_attributes, "ON"))
+        self._attr_is_on = True
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        self._attr_is_on = False
         client = self.hass.data[DOMAIN][self._config_entry_id]["client"]
         await client.async_send(format_rflink_command(self.protocol, self._source_attributes, "OFF"))
+        self._attr_is_on = False
 
     def _apply_event(self, event_data: dict[str, Any]) -> None:
         state = event_data.get("state")
