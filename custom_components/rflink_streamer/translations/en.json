@@ -5,6 +5,7 @@
         "title": "RFLink Streamer Gateway",
         "description": "Connect to your RFLink TCP stream (e.g. ESPHome serial-to-TCP bridge)",
         "data": {
+          "name": "Name",
           "host": "Host / IP Address",
           "port": "TCP Port",
           "reconnect_interval": "Reconnect interval (seconds)"
@@ -27,6 +28,7 @@
       "init": {
         "description": "Set gateway behavior and optional filter text for the discovered-device list.",
         "data": {
+          "name": "Name",
           "reconnect_interval": "Reconnect interval (seconds)",
           "auto_add_new_devices": "Automatically add newly discovered device IDs",
           "device_filter": "Filter discovered IDs (raw ID, alias, platform, protocol)"

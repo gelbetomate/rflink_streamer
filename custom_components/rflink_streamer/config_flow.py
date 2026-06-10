@@ -10,6 +10,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 
@@ -30,6 +31,7 @@ from .device_registry import RFLinkDeviceRegistry, normalize_logical_id
 LOGGER = logging.getLogger(__name__)
 
 CONF_DEVICE_FILTER = "device_filter"
+DEFAULT_ENTRY_NAME = "RFLink Streamer"
 
 
 async def _async_validate_connection(host: str, port: int) -> bool:
@@ -65,7 +67,7 @@ class RFLinkStreamerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 if can_connect:
                     return self.async_create_entry(
-                        title=unique_id,
+                        title=user_input[CONF_NAME],
                         data=user_input,
                     )
                 errors["base"] = "cannot_connect"
@@ -74,6 +76,7 @@ class RFLinkStreamerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
+                    vol.Required(CONF_NAME, default=(user_input or {}).get(CONF_NAME, DEFAULT_ENTRY_NAME)): str,
                     vol.Required(CONF_HOST, default=(user_input or {}).get(CONF_HOST, "")): str,
                     vol.Required(CONF_PORT, default=(user_input or {}).get(CONF_PORT, DEFAULT_PORT)): int,
                     vol.Required(
@@ -102,6 +105,7 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
             CONF_RECONNECT_INTERVAL,
             config_entry.data.get(CONF_RECONNECT_INTERVAL, DEFAULT_RECONNECT_INTERVAL),
         )
+        self._entry_name = config_entry.title or config_entry.data.get(CONF_NAME, DEFAULT_ENTRY_NAME)
         self._auto_add_new_devices = config_entry.options.get(
             CONF_AUTO_ADD_NEW_DEVICES,
             DEFAULT_AUTO_ADD_NEW_DEVICES,
@@ -112,6 +116,7 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
         if user_input is not None:
+            self._entry_name = user_input[CONF_NAME]
             self._reconnect_interval = user_input[CONF_RECONNECT_INTERVAL]
             self._auto_add_new_devices = user_input[CONF_AUTO_ADD_NEW_DEVICES]
             self._device_filter = user_input.get(CONF_DEVICE_FILTER, "").strip().lower()
@@ -132,6 +137,7 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Required(CONF_NAME, default=self._entry_name): str,
                     vol.Required(CONF_RECONNECT_INTERVAL, default=self._reconnect_interval): int,
                     vol.Required(CONF_AUTO_ADD_NEW_DEVICES, default=self._auto_add_new_devices): bool,
                     vol.Optional(CONF_DEVICE_FILTER, default=self._device_filter): str,
@@ -166,6 +172,8 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
                     return await self.async_step_devices()
 
                 await self._registry.async_apply_user_preferences(self._enabled_device_ids, aliases)
+                if self._entry_name != self._config_entry.title:
+                    self.hass.config_entries.async_update_entry(self._config_entry, title=self._entry_name)
                 return self.async_create_entry(
                     data={
                         CONF_RECONNECT_INTERVAL: self._reconnect_interval,
