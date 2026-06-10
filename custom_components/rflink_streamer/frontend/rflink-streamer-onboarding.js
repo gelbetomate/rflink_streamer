@@ -30,60 +30,69 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       <style>
         :host {
           color-scheme: light dark;
-          --rflink-bg: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 10%, transparent), transparent 40%), var(--primary-background-color);
+          --rflink-bg: var(--primary-background-color);
           --rflink-card: var(--card-background-color);
           --rflink-border: var(--divider-color);
           --rflink-text: var(--primary-text-color);
           --rflink-muted: var(--secondary-text-color);
           --rflink-primary: var(--primary-color);
-          --rflink-primary-2: var(--accent-color);
+          --rflink-surface: var(--secondary-background-color);
+          --rflink-secondary: var(--secondary-text-color);
           --rflink-warn: var(--error-color);
           font-family: "Segoe UI", "Trebuchet MS", sans-serif;
         }
         .root {
           background: var(--rflink-bg);
-          border: 1px solid var(--rflink-border);
-          border-radius: 18px;
-          padding: 16px;
-          box-shadow: var(--ha-card-box-shadow, none);
+          padding: 0 0 16px;
         }
-        .header {
+        .app-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin-bottom: 16px;
-        }
-        .title {
-          font-size: 1.4rem;
-          font-weight: 700;
-          letter-spacing: 0.02em;
-        }
-        .subtitle {
-          color: var(--rflink-muted);
-          font-size: 0.92rem;
+          padding: 12px 4px 16px;
         }
         .actions {
           display: flex;
+          flex-wrap: wrap;
           gap: 8px;
         }
+        .heading {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .heading ha-icon {
+          color: var(--rflink-primary);
+          --mdc-icon-size: 24px;
+        }
+        .heading-title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+        }
         button {
-          border: 1px solid var(--rflink-border);
-          background: var(--secondary-background-color);
+          border: 1px solid transparent;
+          background: var(--rflink-surface);
           color: var(--rflink-text);
-          border-radius: 10px;
+          border-radius: 999px;
           padding: 8px 12px;
           cursor: pointer;
           font-weight: 600;
         }
         button.primary {
-          border-color: var(--rflink-primary);
-          background: linear-gradient(90deg, var(--rflink-primary), var(--rflink-primary-2));
-          color: #fff;
+          background: var(--rflink-primary);
+          color: var(--text-primary-color, #fff);
         }
         button.warn {
-          border-color: var(--rflink-warn);
-          color: var(--rflink-warn);
+          background: var(--rflink-warn);
+          color: var(--text-primary-color, #fff);
+        }
+        button.subtle {
+          border-color: var(--rflink-border);
+          background: var(--rflink-card);
+          color: var(--rflink-text);
         }
         .grid {
           display: grid;
@@ -151,13 +160,13 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         }
       </style>
       <div class="root">
-        <div class="header">
-          <div>
-            <div class="title">RFLink Device Onboarding</div>
-            <div class="subtitle">Review discovered devices, test incoming payload, and add entities without using options flow.</div>
+        <div class="app-header">
+          <div class="heading">
+            <ha-icon icon="mdi:radio-tower"></ha-icon>
+            <div class="heading-title">RFLink Onboarding</div>
           </div>
           <div class="actions">
-            <button id="toggle-sidebar">Hide Sidebar Entry</button>
+            <button class="subtle" id="toggle-sidebar">Hide Sidebar Entry</button>
             <button class="primary" id="refresh">Refresh</button>
           </div>
         </div>
@@ -255,9 +264,9 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       <div class="helper">Use the same entity base id for two raw devices to merge them into one Home Assistant device.</div>
       <div class="row">
         <button class="primary add">Add / Merge</button>
-        <button class="test">Test</button>
+        <button class="subtle test">Test</button>
         <button class="warn ignore">Ignore</button>
-        <button class="delete">Delete</button>
+        <button class="subtle delete">Delete</button>
       </div>
       <div class="muted result"></div>
     `;
@@ -311,7 +320,7 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       <div class="line"><span class="muted">Last seen: ${item.last_seen || "never"}</span></div>
       <div class="row">
         <button class="warn ignore">Ignore</button>
-        <button class="delete">Delete</button>
+        <button class="subtle delete">Delete</button>
       </div>
     `;
 
