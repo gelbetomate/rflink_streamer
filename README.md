@@ -1,5 +1,7 @@
 # RFLink Streamer
 
+[![Add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gelbetomate&repository=rflink_streamer&category=integration)
+
 RFLink Streamer is a Home Assistant HACS custom integration that connects directly to a raw RFLink TCP stream, such as an ESPHome serial-to-TCP bridge, and creates native Home Assistant entities automatically when new RFLink device IDs appear.
 
 ## Features
@@ -13,6 +15,8 @@ RFLink Streamer is a Home Assistant HACS custom integration that connects direct
 ## Installation
 
 ### HACS
+
+Use the button above for one-click repository import, or add it manually:
 
 1. Open HACS in Home Assistant.
 2. Add this repository as a custom repository:
@@ -80,6 +84,11 @@ The panel provides:
 - **Added Devices** list for IDs that are currently enabled
 
 This makes it possible to onboard discovered IDs without using the options form.
+
+If you hide the sidebar entry by accident, you can enable it again in:
+
+- **Settings -> Devices & Services -> RFLink Streamer -> Configure**
+- Set **Show RFLink onboarding in sidebar** to `true`
 
 If an RFLink sender changes its raw ID over time, map both raw IDs to the same logical ID in the aliases field:
 

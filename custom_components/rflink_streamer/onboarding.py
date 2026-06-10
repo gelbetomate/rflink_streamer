@@ -11,6 +11,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components import frontend, panel_custom, websocket_api
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -43,11 +44,22 @@ async def async_setup_onboarding(hass: HomeAssistant, entry: ConfigEntry) -> Non
     """Register panel and websocket commands for onboarding UI."""
     frontend_dir = Path(__file__).parent / "frontend"
     if not hass.data[DOMAIN].get("onboarding_static_registered"):
-        hass.http.register_static_path(
-            f"/{DOMAIN}/frontend",
-            str(frontend_dir),
-            cache_headers=False,
-        )
+        if hasattr(hass.http, "async_register_static_paths"):
+            await hass.http.async_register_static_paths(
+                [
+                    StaticPathConfig(
+                        f"/{DOMAIN}/frontend",
+                        str(frontend_dir),
+                        False,
+                    )
+                ]
+            )
+        else:
+            hass.http.register_static_path(
+                f"/{DOMAIN}/frontend",
+                str(frontend_dir),
+                cache_headers=False,
+            )
         hass.data[DOMAIN]["onboarding_static_registered"] = True
 
     await async_set_sidebar_entry_enabled(
