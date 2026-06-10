@@ -14,6 +14,7 @@ from .const import DOMAIN
 
 _STORAGE_VERSION = 1
 _LOGICAL_ID_RE = re.compile(r"[^a-z0-9]+")
+_STORAGE_KEY_RE = re.compile(r"[^a-z0-9]+")
 
 
 def normalize_logical_id(value: str) -> str:
@@ -21,16 +22,35 @@ def normalize_logical_id(value: str) -> str:
     return _LOGICAL_ID_RE.sub("_", value.strip().lower()).strip("_")
 
 
+def build_registry_storage_key(host: str, port: int) -> str:
+    """Build a stable storage key for one RFLink gateway endpoint."""
+    endpoint = _STORAGE_KEY_RE.sub("_", f"{host}_{port}".strip().lower()).strip("_")
+    return f"{DOMAIN}_{endpoint}_devices"
+
+
+def build_legacy_registry_storage_key(entry_id: str) -> str:
+    """Build the legacy storage key used by earlier versions."""
+    return f"{DOMAIN}_{entry_id}_devices"
+
+
 class RFLinkDeviceRegistry:
     """Track discovered RFLink raw IDs and their exposure settings."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
-        self._store: Store[dict[str, Any]] = Store(hass, _STORAGE_VERSION, f"{DOMAIN}_{entry_id}_devices")
+    def __init__(self, hass: HomeAssistant, storage_key: str, legacy_storage_key: str | None = None) -> None:
+        self._store: Store[dict[str, Any]] = Store(hass, _STORAGE_VERSION, storage_key)
+        self._legacy_store: Store[dict[str, Any]] | None = None
+        if legacy_storage_key and legacy_storage_key != storage_key:
+            self._legacy_store = Store(hass, _STORAGE_VERSION, legacy_storage_key)
         self._devices: dict[str, dict[str, Any]] = {}
 
     async def async_load(self) -> None:
         """Load device registry from storage."""
         data = await self._store.async_load()
+        if not data and self._legacy_store is not None:
+            data = await self._legacy_store.async_load()
+            if data:
+                # Persist migrated legacy data under the new endpoint-based key.
+                self._store.async_delay_save(self._async_serialize, 0)
         if not data:
             return
 

@@ -25,7 +25,11 @@ from .const import (
     SIGNAL_DISCOVER_DEVICE,
     SIGNAL_HANDLE_EVENT,
 )
-from .device_registry import RFLinkDeviceRegistry
+from .device_registry import (
+    RFLinkDeviceRegistry,
+    build_legacy_registry_storage_key,
+    build_registry_storage_key,
+)
 from .protocol import parse_rflink_line
 
 LOGGER = logging.getLogger(__name__)
@@ -162,7 +166,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up RFLink Streamer from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-    device_registry = RFLinkDeviceRegistry(hass, entry.entry_id)
+    storage_key = build_registry_storage_key(entry.data[CONF_HOST], entry.data[CONF_PORT])
+    legacy_storage_key = build_legacy_registry_storage_key(entry.entry_id)
+    device_registry = RFLinkDeviceRegistry(hass, storage_key, legacy_storage_key)
     await device_registry.async_load()
 
     runtime_data = hass.data[DOMAIN][entry.entry_id] = {

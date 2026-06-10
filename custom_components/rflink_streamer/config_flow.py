@@ -27,6 +27,7 @@ from .const import (
     DOMAIN,
 )
 from .device_registry import RFLinkDeviceRegistry, normalize_logical_id
+from .device_registry import build_legacy_registry_storage_key, build_registry_storage_key
 
 LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +124,14 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_devices()
 
         if self._registry is None:
-            self._registry = RFLinkDeviceRegistry(self.hass, self._config_entry.entry_id)
+            self._registry = RFLinkDeviceRegistry(
+                self.hass,
+                build_registry_storage_key(
+                    self._config_entry.data[CONF_HOST],
+                    self._config_entry.data[CONF_PORT],
+                ),
+                build_legacy_registry_storage_key(self._config_entry.entry_id),
+            )
             await self._registry.async_load()
             self._devices = await self._registry.async_get_devices()
             self._enabled_device_ids = {
@@ -147,7 +155,14 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_devices(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
         if self._registry is None:
-            self._registry = RFLinkDeviceRegistry(self.hass, self._config_entry.entry_id)
+            self._registry = RFLinkDeviceRegistry(
+                self.hass,
+                build_registry_storage_key(
+                    self._config_entry.data[CONF_HOST],
+                    self._config_entry.data[CONF_PORT],
+                ),
+                build_legacy_registry_storage_key(self._config_entry.entry_id),
+            )
             await self._registry.async_load()
 
         self._devices = await self._registry.async_get_devices()
