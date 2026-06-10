@@ -71,7 +71,9 @@ class RFLinkDeviceRegistry:
                 "protocol": event_data["protocol"],
                 "last_seen": now,
                 "enabled": auto_add_new_devices,
+                "ignored": False,
                 "canonical_id": raw_device_id,
+                "preferred_platform": None,
             }
             self._devices[raw_device_id] = record
             changed = True
@@ -88,15 +90,25 @@ class RFLinkDeviceRegistry:
             if not isinstance(record.get("enabled"), bool):
                 record["enabled"] = auto_add_new_devices
                 changed = True
+            if not isinstance(record.get("ignored"), bool):
+                record["ignored"] = False
+                changed = True
             canonical_id = normalize_logical_id(str(record.get("canonical_id", "")))
             if not canonical_id:
                 canonical_id = raw_device_id
             if record.get("canonical_id") != canonical_id:
                 record["canonical_id"] = canonical_id
                 changed = True
+            preferred_platform = record.get("preferred_platform")
+            if preferred_platform is not None and not isinstance(preferred_platform, str):
+                record["preferred_platform"] = None
+                changed = True
 
         if changed:
             self._schedule_save()
+
+        if record.get("ignored", False):
+            return None
 
         if not record.get("enabled", False):
             return None
@@ -104,6 +116,7 @@ class RFLinkDeviceRegistry:
         mapped_event = dict(event_data)
         mapped_event["raw_device_id"] = raw_device_id
         mapped_event["device_id"] = record["canonical_id"]
+        mapped_event["platform"] = record.get("preferred_platform") or event_data["platform"]
         return mapped_event
 
     async def async_get_devices(self) -> dict[str, dict[str, Any]]:
@@ -124,7 +137,9 @@ class RFLinkDeviceRegistry:
                     "protocol": "unknown",
                     "last_seen": None,
                     "enabled": False,
+                    "ignored": False,
                     "canonical_id": raw_device_id,
+                    "preferred_platform": None,
                 }
                 changed = True
 
@@ -136,6 +151,69 @@ class RFLinkDeviceRegistry:
                 changed = True
             if record.get("canonical_id") != canonical_id:
                 record["canonical_id"] = canonical_id
+                changed = True
+            if not isinstance(record.get("ignored"), bool):
+                record["ignored"] = False
+                changed = True
+            if record.get("preferred_platform") is not None and not isinstance(record.get("preferred_platform"), str):
+                record["preferred_platform"] = None
+                changed = True
+
+        if changed:
+            self._schedule_save()
+
+    async def async_delete_device(self, raw_device_id: str) -> dict[str, Any] | None:
+        """Delete a discovered device record by raw ID."""
+        removed = self._devices.pop(raw_device_id, None)
+        if removed is not None:
+            self._schedule_save()
+            return deepcopy(removed)
+        return None
+
+    async def async_set_device_preferences(
+        self,
+        raw_device_id: str,
+        *,
+        enabled: bool | None = None,
+        canonical_id: str | None = None,
+        ignored: bool | None = None,
+        preferred_platform: str | None = None,
+    ) -> None:
+        """Update one device record from onboarding UI actions."""
+        changed = False
+        record = self._devices.get(raw_device_id)
+        if record is None:
+            record = {
+                "platform": preferred_platform or "unknown",
+                "protocol": "unknown",
+                "last_seen": None,
+                "enabled": False,
+                "ignored": False,
+                "canonical_id": raw_device_id,
+                "preferred_platform": None,
+            }
+            self._devices[raw_device_id] = record
+            changed = True
+
+        if enabled is not None and record.get("enabled") != enabled:
+            record["enabled"] = enabled
+            changed = True
+
+        if ignored is not None and record.get("ignored") != ignored:
+            record["ignored"] = ignored
+            changed = True
+
+        if canonical_id is not None:
+            normalized = normalize_logical_id(canonical_id)
+            if not normalized:
+                normalized = raw_device_id
+            if record.get("canonical_id") != normalized:
+                record["canonical_id"] = normalized
+                changed = True
+
+        if preferred_platform is not None:
+            if record.get("preferred_platform") != preferred_platform:
+                record["preferred_platform"] = preferred_platform
                 changed = True
 
         if changed:

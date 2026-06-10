@@ -21,7 +21,9 @@ from .const import (
     CONF_HOST,
     CONF_PORT,
     CONF_RECONNECT_INTERVAL,
+    CONF_SHOW_ONBOARDING_SIDEBAR,
     DEFAULT_AUTO_ADD_NEW_DEVICES,
+    DEFAULT_SHOW_ONBOARDING_SIDEBAR,
     DEFAULT_PORT,
     DEFAULT_RECONNECT_INTERVAL,
     DOMAIN,
@@ -114,12 +116,17 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
         self._enabled_device_ids: set[str] = set()
         self._device_aliases = ""
         self._device_filter = ""
+        self._show_onboarding_sidebar = config_entry.options.get(
+            CONF_SHOW_ONBOARDING_SIDEBAR,
+            DEFAULT_SHOW_ONBOARDING_SIDEBAR,
+        )
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> config_entries.ConfigFlowResult:
         if user_input is not None:
             self._entry_name = user_input[CONF_NAME]
             self._reconnect_interval = user_input[CONF_RECONNECT_INTERVAL]
             self._auto_add_new_devices = user_input[CONF_AUTO_ADD_NEW_DEVICES]
+            self._show_onboarding_sidebar = user_input[CONF_SHOW_ONBOARDING_SIDEBAR]
             self._device_filter = user_input.get(CONF_DEVICE_FILTER, "").strip().lower()
             return await self.async_step_devices()
 
@@ -148,6 +155,7 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(CONF_NAME, default=self._entry_name): str,
                     vol.Required(CONF_RECONNECT_INTERVAL, default=self._reconnect_interval): int,
                     vol.Required(CONF_AUTO_ADD_NEW_DEVICES, default=self._auto_add_new_devices): bool,
+                    vol.Required(CONF_SHOW_ONBOARDING_SIDEBAR, default=self._show_onboarding_sidebar): bool,
                     vol.Optional(CONF_DEVICE_FILTER, default=self._device_filter): str,
                 }
             ),
@@ -193,6 +201,7 @@ class RFLinkStreamerOptionsFlow(config_entries.OptionsFlow):
                     data={
                         CONF_RECONNECT_INTERVAL: self._reconnect_interval,
                         CONF_AUTO_ADD_NEW_DEVICES: self._auto_add_new_devices,
+                        CONF_SHOW_ONBOARDING_SIDEBAR: self._show_onboarding_sidebar,
                     }
                 )
 

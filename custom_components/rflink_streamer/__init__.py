@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections import deque
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -20,6 +21,7 @@ from .const import (
     DEFAULT_AUTO_ADD_NEW_DEVICES,
     DEFAULT_RECONNECT_INTERVAL,
     DOMAIN,
+    ONBOARDING_EVENT_CACHE_SIZE,
     PLATFORMS,
     SIGNAL_AVAILABILITY,
     SIGNAL_DISCOVER_DEVICE,
@@ -30,6 +32,7 @@ from .device_registry import (
     build_legacy_registry_storage_key,
     build_registry_storage_key,
 )
+from .onboarding import async_remove_onboarding_panel, async_setup_onboarding, cache_event
 from .protocol import parse_rflink_line
 
 LOGGER = logging.getLogger(__name__)
@@ -121,16 +124,8 @@ class RFLinkStreamerClient:
                 if parsed is None:
                     continue
 
-                async_dispatcher_send(
-                    self.hass,
-                    SIGNAL_DISCOVER_DEVICE.format(parsed["platform"]),
-                    parsed,
-                )
-                async_dispatcher_send(
-                    self.hass,
-                    SIGNAL_HANDLE_EVENT.format(parsed["platform"], parsed["device_id"]),
-                    parsed,
-                )
+                cache_event(runtime_data, parsed)
+                runtime_data["dispatch_event"](parsed)
         finally:
             await self._async_close_writer()
             self._set_availability(False)
@@ -172,6 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await device_registry.async_load()
 
     runtime_data = hass.data[DOMAIN][entry.entry_id] = {
+        "entry": entry,
         "client": RFLinkStreamerClient(
             hass,
             entry.entry_id,
@@ -185,9 +181,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "device_registry": device_registry,
         "auto_add_new_devices": entry.options.get(CONF_AUTO_ADD_NEW_DEVICES, DEFAULT_AUTO_ADD_NEW_DEVICES),
         "known_devices": {platform: set() for platform in PLATFORMS},
+        "event_cache": {},
+        "event_order": deque(),
+        "event_cache_size": ONBOARDING_EVENT_CACHE_SIZE,
     }
+    runtime_data["dispatch_event"] = _build_dispatcher(hass)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    await async_setup_onboarding(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     runtime_data["client"].async_start()
     return True
@@ -200,6 +201,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        await async_remove_onboarding_panel(hass)
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
 
@@ -207,3 +209,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the integration when options change."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+def _build_dispatcher(hass: HomeAssistant):
+    def _dispatch(event_data: dict[str, Any]) -> None:
+        async_dispatcher_send(
+            hass,
+            SIGNAL_DISCOVER_DEVICE.format(event_data["platform"]),
+            event_data,
+        )
+        async_dispatcher_send(
+            hass,
+            SIGNAL_HANDLE_EVENT.format(event_data["platform"], event_data["device_id"]),
+            event_data,
+        )
+
+    return _dispatch

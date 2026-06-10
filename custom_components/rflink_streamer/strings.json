@@ -31,6 +31,7 @@
           "name": "Name",
           "reconnect_interval": "Reconnect interval (seconds)",
           "auto_add_new_devices": "Automatically add newly discovered device IDs",
+          "show_onboarding_sidebar": "Show RFLink onboarding in sidebar",
           "device_filter": "Filter discovered IDs (raw ID, alias, platform, protocol)"
         }
       },

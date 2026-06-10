@@ -62,6 +62,25 @@ Filter usage:
 
 Only enabled IDs are exposed as Home Assistant entities.
 
+## Onboarding UI (new)
+
+To avoid the long options-flow form, the integration now adds a dedicated sidebar panel:
+
+- **Settings -> Devices & Services -> RFLink Streamer**
+- Open **RFLink Onboarding** from the sidebar
+
+The panel provides:
+
+- **Pending Devices** list for newly discovered raw IDs
+- **Test** to inspect the latest payload for a device
+- **Add** with optional custom logical ID and platform override
+- **Ignore** to hide noisy or unwanted IDs
+- **Delete** to remove a raw ID from registry/history and clean up created entities
+- **Sidebar toggle** button to show/hide the onboarding entry in the Home Assistant sidebar
+- **Added Devices** list for IDs that are currently enabled
+
+This makes it possible to onboard discovered IDs without using the options form.
+
 If an RFLink sender changes its raw ID over time, map both raw IDs to the same logical ID in the aliases field:
 
 ```text

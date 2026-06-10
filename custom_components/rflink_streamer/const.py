@@ -11,15 +11,19 @@ CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_RECONNECT_INTERVAL = "reconnect_interval"
 CONF_AUTO_ADD_NEW_DEVICES = "auto_add_new_devices"
+CONF_SHOW_ONBOARDING_SIDEBAR = "show_onboarding_sidebar"
 CONF_ENABLED_DEVICE_IDS = "enabled_device_ids"
 CONF_DEVICE_ALIASES = "device_aliases"
 DEFAULT_PORT = 6638
 DEFAULT_RECONNECT_INTERVAL = 10
 DEFAULT_AUTO_ADD_NEW_DEVICES = False
+DEFAULT_SHOW_ONBOARDING_SIDEBAR = True
 
 RFLINK_RECV_PREFIX = "20;"
 
 PLATFORMS = ["light", "switch", "sensor", "binary_sensor"]
+ONBOARDING_PANEL_PATH = "rflink-streamer"
+ONBOARDING_EVENT_CACHE_SIZE = 300
 
 SIGNAL_AVAILABILITY = "rflink_streamer_availability_{}"
 SIGNAL_DISCOVER_DEVICE = "rflink_streamer_discover_{}"
