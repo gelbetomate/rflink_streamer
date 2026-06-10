@@ -94,13 +94,15 @@ async def async_set_sidebar_entry_enabled(hass: HomeAssistant, entry: ConfigEntr
             module_url=f"/{DOMAIN}/frontend/rflink-streamer-onboarding.js",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
-            require_admin=True,
+            require_admin=False,
             config={"entry_id": entry.entry_id},
         )
+        LOGGER.info("RFLink onboarding panel registered in sidebar at /%s", ONBOARDING_PANEL_PATH)
         return
 
     with contextlib.suppress(ValueError):
         frontend.async_remove_panel(hass, ONBOARDING_PANEL_PATH)
+        LOGGER.info("RFLink onboarding panel removed from sidebar")
 
 
 async def async_remove_onboarding_panel(hass: HomeAssistant) -> None:
