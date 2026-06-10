@@ -45,7 +45,39 @@ Configuration fields:
 
 ## Auto-discovery
 
-When a new RFLink device ID is first seen on the TCP stream, RFLink Streamer creates the matching Home Assistant entity automatically:
+When a new RFLink device ID is first seen on the TCP stream, RFLink Streamer stores it in an internal discovered-device registry.
+
+You can manage this in **Settings -> Devices & Services -> RFLink Streamer -> Configure**:
+
+- Enable or disable each discovered raw RFLink ID
+- Filter the discovered-ID list by raw ID, alias, platform, or protocol
+- Decide whether newly discovered IDs should be auto-added
+- Map multiple raw IDs to one logical Home Assistant ID
+
+Filter usage:
+
+- Enter a filter value in the options form
+- Submit once to refresh the visible discovered-ID list
+- Select/deselect IDs and submit again to save
+
+Only enabled IDs are exposed as Home Assistant entities.
+
+If an RFLink sender changes its raw ID over time, map both raw IDs to the same logical ID in the aliases field:
+
+```text
+newkaku_c6c6c6_1=living_room_lamp
+newkaku_a1b2c3_1=living_room_lamp
+```
+
+Alias format is one line per mapping:
+
+```text
+raw_id=logical_id
+```
+
+Logical IDs are normalized to lowercase snake_case automatically.
+
+Platform inference still follows the same defaults:
 
 - Lighting-style protocols default to `light`
 - Known motor/relay style protocols become `switch`

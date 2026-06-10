@@ -10,8 +10,12 @@ DOMAIN = "rflink_streamer"
 CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_RECONNECT_INTERVAL = "reconnect_interval"
+CONF_AUTO_ADD_NEW_DEVICES = "auto_add_new_devices"
+CONF_ENABLED_DEVICE_IDS = "enabled_device_ids"
+CONF_DEVICE_ALIASES = "device_aliases"
 DEFAULT_PORT = 6638
 DEFAULT_RECONNECT_INTERVAL = 10
+DEFAULT_AUTO_ADD_NEW_DEVICES = False
 
 RFLINK_RECV_PREFIX = "20;"
 

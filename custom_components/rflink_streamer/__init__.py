@@ -13,9 +13,11 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
+    CONF_AUTO_ADD_NEW_DEVICES,
     CONF_HOST,
     CONF_PORT,
     CONF_RECONNECT_INTERVAL,
+    DEFAULT_AUTO_ADD_NEW_DEVICES,
     DEFAULT_RECONNECT_INTERVAL,
     DOMAIN,
     PLATFORMS,
@@ -23,6 +25,7 @@ from .const import (
     SIGNAL_DISCOVER_DEVICE,
     SIGNAL_HANDLE_EVENT,
 )
+from .device_registry import RFLinkDeviceRegistry
 from .protocol import parse_rflink_line
 
 LOGGER = logging.getLogger(__name__)
@@ -106,6 +109,14 @@ class RFLinkStreamerClient:
                 if parsed is None:
                     continue
 
+                runtime_data = self.hass.data[DOMAIN][self.entry_id]
+                parsed = runtime_data["device_registry"].process_event(
+                    parsed,
+                    runtime_data["auto_add_new_devices"],
+                )
+                if parsed is None:
+                    continue
+
                 async_dispatcher_send(
                     self.hass,
                     SIGNAL_DISCOVER_DEVICE.format(parsed["platform"]),
@@ -151,6 +162,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up RFLink Streamer from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    device_registry = RFLinkDeviceRegistry(hass, entry.entry_id)
+    await device_registry.async_load()
+
     runtime_data = hass.data[DOMAIN][entry.entry_id] = {
         "client": RFLinkStreamerClient(
             hass,
@@ -162,6 +176,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry.data.get(CONF_RECONNECT_INTERVAL, DEFAULT_RECONNECT_INTERVAL),
             ),
         ),
+        "device_registry": device_registry,
+        "auto_add_new_devices": entry.options.get(CONF_AUTO_ADD_NEW_DEVICES, DEFAULT_AUTO_ADD_NEW_DEVICES),
         "known_devices": {platform: set() for platform in PLATFORMS},
     }
 
