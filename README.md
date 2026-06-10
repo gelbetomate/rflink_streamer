@@ -40,6 +40,13 @@ Configuration fields:
 - **Port**: TCP port of the stream, default `6638`
 - **Reconnect interval**: Seconds between reconnect attempts, default `10`
 
+The integration options page now keeps only the gateway behavior settings:
+
+- **Automatically add newly discovered device IDs**
+- **Show RFLink onboarding in sidebar**
+
+Device discovery, add/merge, ignore, and delete are handled from the onboarding panel instead.
+
 ## Supported entity types
 
 - `light`
@@ -51,20 +58,12 @@ Configuration fields:
 
 When a new RFLink device ID is first seen on the TCP stream, RFLink Streamer stores it in an internal discovered-device registry.
 
-You can manage this in **Settings -> Devices & Services -> RFLink Streamer -> Configure**:
+The onboarding panel is the place to review discovered IDs, add them, merge them, ignore them, or delete them.
 
-- Enable or disable each discovered raw RFLink ID
-- Filter the discovered-ID list by raw ID, alias, platform, or protocol
-- Decide whether newly discovered IDs should be auto-added
-- Map multiple raw IDs to one logical Home Assistant ID
+The integration options page only keeps the gateway-level switches:
 
-Filter usage:
-
-- Enter a filter value in the options form
-- Submit once to refresh the visible discovered-ID list
-- Select/deselect IDs and submit again to save
-
-Only enabled IDs are exposed as Home Assistant entities.
+- Automatically add newly discovered IDs
+- Show the onboarding sidebar entry
 
 ## Onboarding UI (new)
 
@@ -77,13 +76,13 @@ The panel provides:
 
 - **Pending Devices** list for newly discovered raw IDs
 - **Test** to inspect the latest payload for a device
-- **Add** with optional custom logical ID and platform override
+- **Add / Merge** with optional custom logical ID and platform override
 - **Ignore** to hide noisy or unwanted IDs
 - **Delete** to remove a raw ID from registry/history and clean up created entities
 - **Sidebar toggle** button to show/hide the onboarding entry in the Home Assistant sidebar
 - **Added Devices** list for IDs that are currently enabled
 
-This makes it possible to onboard discovered IDs without using the options form.
+To merge two devices with different raw IDs, give both the same entity base id in the onboarding panel and add them under the same target id.
 
 If you hide the sidebar entry by accident, you can enable it again in:
 

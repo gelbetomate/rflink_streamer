@@ -26,21 +26,12 @@
     },
     "step": {
       "init": {
-        "description": "Set gateway behavior and optional filter text for the discovered-device list.",
+        "description": "Set gateway behavior and onboarding sidebar visibility.",
         "data": {
           "name": "Name",
           "reconnect_interval": "Reconnect interval (seconds)",
           "auto_add_new_devices": "Automatically add newly discovered device IDs",
-          "show_onboarding_sidebar": "Show RFLink onboarding in sidebar",
-          "device_filter": "Filter discovered IDs (raw ID, alias, platform, protocol)"
-        }
-      },
-      "devices": {
-        "description": "Review discovered RFLink IDs, choose which ones should appear in Home Assistant, and optionally map multiple raw IDs to one logical ID using one alias per line: raw_id=logical_id.",
-        "data": {
-          "device_filter": "Filter discovered IDs (change and submit to refresh list)",
-          "enabled_device_ids": "Discovered IDs enabled in Home Assistant",
-          "device_aliases": "ID aliases (one per line: raw_id=logical_id)"
+          "show_onboarding_sidebar": "Show RFLink onboarding in sidebar"
         }
       }
     }

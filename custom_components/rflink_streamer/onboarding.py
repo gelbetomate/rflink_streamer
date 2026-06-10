@@ -158,6 +158,7 @@ async def _ws_list(
     added: list[dict[str, Any]] = []
 
     for raw_id, record in sorted(devices.items()):
+        latest_event = record.get("last_event") or event_cache.get(raw_id)
         item = {
             "raw_device_id": raw_id,
             "canonical_id": record.get("canonical_id") or raw_id,
@@ -167,8 +168,8 @@ async def _ws_list(
             "preferred_platform": record.get("preferred_platform"),
             "protocol": record.get("protocol") or "unknown",
             "last_seen": record.get("last_seen"),
-            "has_event": raw_id in event_cache,
-            "measurements": list((event_cache.get(raw_id) or {}).get("measurements", {}).keys()),
+            "has_event": latest_event is not None,
+            "measurements": list((latest_event or {}).get("measurements", {}).keys()),
         }
         if item["enabled"]:
             added.append(item)
@@ -207,17 +208,30 @@ async def _ws_add(
 ) -> None:
     runtime_data = _get_runtime_data(hass, msg["entry_id"])
     registry = runtime_data["device_registry"]
+    devices_before = await registry.async_get_devices()
+    previous_record = devices_before.get(msg["raw_device_id"])
+    previous_canonical_id = (previous_record or {}).get("canonical_id") or msg["raw_device_id"]
+    target_canonical_id = (msg.get("canonical_id") or msg["raw_device_id"]).strip()
+    if not target_canonical_id:
+        target_canonical_id = msg["raw_device_id"]
 
     await registry.async_set_device_preferences(
         msg["raw_device_id"],
         enabled=True,
         ignored=False,
-        canonical_id=msg.get("canonical_id"),
+        canonical_id=target_canonical_id,
         preferred_platform=msg.get("platform"),
     )
 
-    event_cache: dict[str, dict[str, Any]] = runtime_data["event_cache"]
-    event_data = event_cache.get(msg["raw_device_id"])
+    if previous_canonical_id != target_canonical_id and not _is_enabled_canonical_in_use(
+        devices_before,
+        msg["raw_device_id"],
+        previous_canonical_id,
+    ):
+        _remove_from_known_devices(runtime_data, previous_canonical_id)
+        _remove_entities_for_canonical(hass, runtime_data["entry"].entry_id, previous_canonical_id)
+
+    event_data = await _get_latest_event_data(runtime_data, registry, msg["raw_device_id"])
     if event_data:
         mapped_event = registry.process_event(event_data, runtime_data["auto_add_new_devices"])
         if mapped_event is not None:
@@ -313,7 +327,8 @@ async def _ws_test(
     msg: dict[str, Any],
 ) -> None:
     runtime_data = _get_runtime_data(hass, msg["entry_id"])
-    event_data = runtime_data["event_cache"].get(msg["raw_device_id"])
+    registry = runtime_data["device_registry"]
+    event_data = await _get_latest_event_data(runtime_data, registry, msg["raw_device_id"])
     if event_data is None:
         connection.send_error(msg["id"], "not_found", "No recent event for this device")
         return
@@ -391,3 +406,21 @@ def _remove_entities_for_canonical(hass: HomeAssistant, entry_id: str, canonical
         if not entity_entry.unique_id.startswith(unique_id_prefix):
             continue
         registry.async_remove(entity_id)
+
+
+async def _get_latest_event_data(
+    runtime_data: dict[str, Any],
+    registry,
+    raw_device_id: str,
+) -> dict[str, Any] | None:
+    event_cache: dict[str, dict[str, Any]] = runtime_data["event_cache"]
+    cached_event = event_cache.get(raw_device_id)
+    if cached_event is not None:
+        return cached_event
+
+    devices = await registry.async_get_devices()
+    record = devices.get(raw_device_id)
+    if record is None:
+        return None
+
+    return record.get("last_event")

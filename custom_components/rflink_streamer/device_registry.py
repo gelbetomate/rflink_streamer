@@ -70,6 +70,7 @@ class RFLinkDeviceRegistry:
                 "platform": event_data["platform"],
                 "protocol": event_data["protocol"],
                 "last_seen": now,
+                "last_event": deepcopy(event_data),
                 "enabled": auto_add_new_devices,
                 "ignored": False,
                 "canonical_id": raw_device_id,
@@ -86,6 +87,9 @@ class RFLinkDeviceRegistry:
                 changed = True
             if record.get("last_seen") != now:
                 record["last_seen"] = now
+                changed = True
+            if record.get("last_event") != event_data:
+                record["last_event"] = deepcopy(event_data)
                 changed = True
             if not isinstance(record.get("enabled"), bool):
                 record["enabled"] = auto_add_new_devices
@@ -136,6 +140,7 @@ class RFLinkDeviceRegistry:
                     "platform": "unknown",
                     "protocol": "unknown",
                     "last_seen": None,
+                    "last_event": None,
                     "enabled": False,
                     "ignored": False,
                     "canonical_id": raw_device_id,
@@ -187,6 +192,7 @@ class RFLinkDeviceRegistry:
                 "platform": preferred_platform or "unknown",
                 "protocol": "unknown",
                 "last_seen": None,
+                "last_event": None,
                 "enabled": False,
                 "ignored": False,
                 "canonical_id": raw_device_id,

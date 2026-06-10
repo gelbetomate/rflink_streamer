@@ -29,15 +29,15 @@ class RFLinkStreamerOnboarding extends HTMLElement {
     return `
       <style>
         :host {
-          --rflink-bg: linear-gradient(135deg, #f3f6ff 0%, #eef9f1 100%);
-          --rflink-card: #ffffff;
-          --rflink-border: #d7e0ef;
-          --rflink-text: #1b2330;
-          --rflink-muted: #5d6b80;
-          --rflink-primary: #006c67;
-          --rflink-primary-2: #00a091;
-          --rflink-warn: #c45e00;
-          color: var(--rflink-text);
+          color-scheme: light dark;
+          --rflink-bg: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 10%, transparent), transparent 40%), var(--primary-background-color);
+          --rflink-card: var(--card-background-color);
+          --rflink-border: var(--divider-color);
+          --rflink-text: var(--primary-text-color);
+          --rflink-muted: var(--secondary-text-color);
+          --rflink-primary: var(--primary-color);
+          --rflink-primary-2: var(--accent-color);
+          --rflink-warn: var(--error-color);
           font-family: "Segoe UI", "Trebuchet MS", sans-serif;
         }
         .root {
@@ -45,6 +45,7 @@ class RFLinkStreamerOnboarding extends HTMLElement {
           border: 1px solid var(--rflink-border);
           border-radius: 18px;
           padding: 16px;
+          box-shadow: var(--ha-card-box-shadow, none);
         }
         .header {
           display: flex;
@@ -68,7 +69,7 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         }
         button {
           border: 1px solid var(--rflink-border);
-          background: #fff;
+          background: var(--secondary-background-color);
           color: var(--rflink-text);
           border-radius: 10px;
           padding: 8px 12px;
@@ -111,7 +112,7 @@ class RFLinkStreamerOnboarding extends HTMLElement {
           border: 1px solid var(--rflink-border);
           border-radius: 10px;
           padding: 10px;
-          background: #fbfdff;
+          background: var(--secondary-background-color);
           display: grid;
           gap: 8px;
         }
@@ -135,6 +136,13 @@ class RFLinkStreamerOnboarding extends HTMLElement {
           padding: 7px 8px;
           font-size: 0.9rem;
           min-width: 120px;
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+        }
+        .helper {
+          color: var(--rflink-muted);
+          font-size: 0.85rem;
+          margin-top: -2px;
         }
         .status {
           margin-top: 10px;
@@ -202,13 +210,15 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       return;
     }
 
+    const mergeTargets = [...new Set(added.map((item) => item.canonical_id).filter(Boolean))].sort();
+
     pendingEl.innerHTML = "";
     addedEl.innerHTML = "";
 
     if (pending.length === 0) {
       pendingEl.innerHTML = '<div class="muted">No pending devices.</div>';
     } else {
-      pending.forEach((item) => pendingEl.appendChild(this._renderPending(item)));
+      pending.forEach((item) => pendingEl.appendChild(this._renderPending(item, mergeTargets)));
     }
 
     if (added.length === 0) {
@@ -226,7 +236,7 @@ class RFLinkStreamerOnboarding extends HTMLElement {
     button.textContent = this._sidebarEnabled ? "Hide Sidebar Entry" : "Show Sidebar Entry";
   }
 
-  _renderPending(item) {
+  _renderPending(item, mergeTargets) {
     const wrapper = document.createElement("div");
     wrapper.className = "device";
 
@@ -237,19 +247,32 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       <div class="line"><strong>${item.raw_device_id}</strong><span class="muted">${item.protocol}</span></div>
       <div class="line"><span class="muted">Detected platform: ${item.platform}</span><span class="muted">${item.last_seen || "never"}</span></div>
       <div class="row">
-        <input class="canonical" value="${defaultName}" placeholder="Entity base id" />
+        <input class="canonical" list="merge-targets-${item.raw_device_id}" value="${defaultName}" placeholder="Merge target / entity base id" />
         <select class="platform">
           ${["light", "switch", "sensor", "binary_sensor"].map((p) => `<option value="${p}" ${selectedPlatform === p ? "selected" : ""}>${p}</option>`).join("")}
         </select>
       </div>
+      <div class="helper">Use the same entity base id for two raw devices to merge them into one Home Assistant device.</div>
       <div class="row">
-        <button class="primary add">Add</button>
+        <button class="primary add">Add / Merge</button>
         <button class="test">Test</button>
         <button class="warn ignore">Ignore</button>
         <button class="delete">Delete</button>
       </div>
       <div class="muted result"></div>
     `;
+
+    let dataList = wrapper.querySelector(`#merge-targets-${item.raw_device_id}`);
+    if (!dataList) {
+      dataList = document.createElement("datalist");
+      dataList.id = `merge-targets-${item.raw_device_id}`;
+      mergeTargets.forEach((target) => {
+        const option = document.createElement("option");
+        option.value = target;
+        dataList.appendChild(option);
+      });
+      wrapper.appendChild(dataList);
+    }
 
     wrapper.querySelector(".add")?.addEventListener("click", async () => {
       const canonical = wrapper.querySelector(".canonical")?.value?.trim();
