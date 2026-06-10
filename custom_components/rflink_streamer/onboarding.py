@@ -7,6 +7,7 @@ from collections import deque
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+import logging
 
 import voluptuous as vol
 
@@ -23,6 +24,8 @@ from .const import (
     ONBOARDING_PANEL_PATH,
     PLATFORMS,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 PANEL_TITLE = "RFLink Onboarding"
 PANEL_NAME = "rflink-streamer-onboarding"
@@ -44,22 +47,23 @@ async def async_setup_onboarding(hass: HomeAssistant, entry: ConfigEntry) -> Non
     """Register panel and websocket commands for onboarding UI."""
     frontend_dir = Path(__file__).parent / "frontend"
     if not hass.data[DOMAIN].get("onboarding_static_registered"):
-        if hasattr(hass.http, "async_register_static_paths"):
-            await hass.http.async_register_static_paths(
-                [
-                    StaticPathConfig(
-                        f"/{DOMAIN}/frontend",
-                        str(frontend_dir),
-                        False,
-                    )
-                ]
-            )
+        static_url = f"/{DOMAIN}/frontend"
+        register_many = getattr(hass.http, "async_register_static_paths", None)
+        if register_many is not None:
+            await register_many([StaticPathConfig(static_url, str(frontend_dir), False)])
+            LOGGER.info("RFLink onboarding static path registered via async_register_static_paths")
         else:
-            hass.http.register_static_path(
-                f"/{DOMAIN}/frontend",
-                str(frontend_dir),
-                cache_headers=False,
-            )
+            register_one = getattr(hass.http, "async_register_static_path", None)
+            if register_one is not None:
+                await register_one(static_url, str(frontend_dir), cache_headers=False)
+                LOGGER.info("RFLink onboarding static path registered via async_register_static_path")
+            else:
+                register_legacy = getattr(hass.http, "register_static_path", None)
+                if register_legacy is not None:
+                    register_legacy(static_url, str(frontend_dir), cache_headers=False)
+                    LOGGER.info("RFLink onboarding static path registered via register_static_path")
+                else:
+                    raise RuntimeError("No supported static path registration API found")
         hass.data[DOMAIN]["onboarding_static_registered"] = True
 
     await async_set_sidebar_entry_enabled(
