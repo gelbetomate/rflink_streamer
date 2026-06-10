@@ -18,9 +18,6 @@ class RFLinkStreamerOnboarding extends HTMLElement {
 
   connectedCallback() {
     this.style.display = "block";
-    this.style.padding = "16px";
-    this.style.maxWidth = "1200px";
-    this.style.margin = "0 auto";
     this.innerHTML = this._renderShell();
     this._bindEvents();
   }
@@ -43,34 +40,40 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         }
         .root {
           background: var(--rflink-bg);
-          padding: 0 0 16px;
+          min-height: 100vh;
         }
-        .app-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 12px 4px 16px;
+        ha-top-app-bar-fixed {
+          --mdc-theme-primary: var(--app-header-background-color, var(--primary-color));
+          --app-header-text-color: var(--app-header-text-color, #fff);
         }
-        .actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .heading {
+        .title-wrap {
           display: flex;
           align-items: center;
           gap: 12px;
           min-width: 0;
         }
-        .heading ha-icon {
-          color: var(--rflink-primary);
-          --mdc-icon-size: 24px;
+        .title-wrap ha-icon {
+          color: var(--app-header-text-color, #fff);
+          --mdc-icon-size: 22px;
         }
-        .heading-title {
-          font-size: 1.4rem;
-          font-weight: 700;
-          letter-spacing: 0.01em;
+        .title-text {
+          font-size: 1.25rem;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .content {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 16px;
+        }
+        .actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+          margin-bottom: 16px;
         }
         button {
           border: 1px solid transparent;
@@ -160,36 +163,35 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         }
       </style>
       <div class="root">
-        <div class="app-header">
-          <div class="heading">
+        <ha-top-app-bar-fixed>
+          <div slot="title" class="title-wrap">
             <ha-icon icon="mdi:radio-tower"></ha-icon>
-            <div class="heading-title">RFLink Onboarding</div>
+            <div class="title-text">RFLink Onboarding</div>
           </div>
+        </ha-top-app-bar-fixed>
+        <div class="content">
           <div class="actions">
-            <button class="subtle" id="toggle-sidebar">Hide Sidebar Entry</button>
             <button class="primary" id="refresh">Refresh</button>
           </div>
+          <div class="grid">
+            <section class="card">
+              <h3>Pending Devices</h3>
+              <div id="pending" class="list"></div>
+            </section>
+            <section class="card">
+              <h3>Added Devices</h3>
+              <div id="added" class="list"></div>
+            </section>
+          </div>
+          <div id="status" class="status"></div>
         </div>
-        <div class="grid">
-          <section class="card">
-            <h3>Pending Devices</h3>
-            <div id="pending" class="list"></div>
-          </section>
-          <section class="card">
-            <h3>Added Devices</h3>
-            <div id="added" class="list"></div>
-          </section>
-        </div>
-        <div id="status" class="status"></div>
       </div>
     `;
   }
 
   _bindEvents() {
     const refreshBtn = this.querySelector("#refresh");
-    const toggleSidebarBtn = this.querySelector("#toggle-sidebar");
     refreshBtn?.addEventListener("click", () => this._load());
-    toggleSidebarBtn?.addEventListener("click", () => this._toggleSidebar());
   }
 
   async _load() {
@@ -203,8 +205,6 @@ class RFLinkStreamerOnboarding extends HTMLElement {
         type: "rflink_streamer/onboarding/list",
         entry_id: this._entryId,
       });
-      this._sidebarEnabled = !!result.sidebar_enabled;
-      this._renderSidebarButton();
       this._renderLists(result.pending || [], result.added || []);
       this._setStatus(`Loaded ${result.pending.length} pending, ${result.added.length} added.`);
     } catch (err) {
@@ -235,14 +235,6 @@ class RFLinkStreamerOnboarding extends HTMLElement {
     } else {
       added.forEach((item) => addedEl.appendChild(this._renderAdded(item)));
     }
-  }
-
-  _renderSidebarButton() {
-    const button = this.querySelector("#toggle-sidebar");
-    if (!button) {
-      return;
-    }
-    button.textContent = this._sidebarEnabled ? "Hide Sidebar Entry" : "Show Sidebar Entry";
   }
 
   _renderPending(item, mergeTargets) {
@@ -375,22 +367,6 @@ class RFLinkStreamerOnboarding extends HTMLElement {
       this._setStatus(`Deleted ${rawDeviceId}.`);
     } catch (err) {
       this._setStatus(`Failed to delete ${rawDeviceId}: ${err?.message || err}`);
-    }
-  }
-
-  async _toggleSidebar() {
-    try {
-      const enabled = !this._sidebarEnabled;
-      const result = await this._hass.callWS({
-        type: "rflink_streamer/onboarding/set_sidebar",
-        entry_id: this._entryId,
-        enabled,
-      });
-      this._sidebarEnabled = !!result.sidebar_enabled;
-      this._renderSidebarButton();
-      this._setStatus(this._sidebarEnabled ? "Sidebar entry enabled." : "Sidebar entry hidden.");
-    } catch (err) {
-      this._setStatus(`Failed to toggle sidebar entry: ${err?.message || err}`);
     }
   }
 
